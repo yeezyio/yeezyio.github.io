@@ -1,0 +1,180 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="UTF-8" />
+    <title>eeprom converter @yeezyio</title>
+    <style>
+      body {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        flex-direction: column;
+        height: 100vh;
+        font-family: Arial, sans-serif;
+        background-color: #2f2f2f;
+      }
+      h1 {
+        color: rgb(0, 164, 246);
+        text-align: center;
+        margin-bottom: 50px;
+        border: 4px solid;
+        padding: 8px;
+        border-radius: 3px;
+      }
+      #file {
+        display: none;
+      }
+      label {
+        padding: 10px;
+        background-color: rgb(0, 164, 246);
+        color: white;
+        cursor: pointer;
+        border-radius: 5px;
+        text-transform: uppercase;
+        font-weight: bold;
+      }
+      label:hover {
+        background-color: rgb(4, 108, 160);
+      }
+      #block {
+        width: 50%;
+        color: white;
+        font-family: Arial, sans-serif;
+        text-align: center;
+        font-size: 22pt;
+        margin-bottom: 50px;
+      }
+      .hidden {
+        display: none;
+      }
+      #inputContainer {
+        display: grid;
+      }
+      input {
+        font-family: Arial, sans-serif;
+        font-size: 20pt;
+        padding: 5px;
+        margin-bottom: 20px;
+      }
+      button {
+        padding: 10px;
+        font-family: Arial, sans-serif;
+        color: white;
+        font-size: 20pt;
+        background: rgb(0, 164, 246);
+      }
+      button:hover {
+        background-color: rgb(4, 108, 160);
+      }
+      #blockerror {
+        font-family: Arial, sans-serif;
+        color: red;
+        border: 3px solid;
+        border-radius: 3px;
+        padding: 10px;
+        font-size: 20pt;
+        text-align: center;
+        margin-bottom: 50px;
+      }
+      #author {
+        color: white;
+        font-size: 20pt;
+      }
+      #success {
+        color: lightgreen;
+        font-size: 20pt;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="author">Powered by @yeezyio</div>
+    <h1>Универсальный патчер eeprom по смещениям 0x28, 0x4, 0x8004</h1>
+    <div id="block">
+      <p>Вы можете вводить мак в любом формате</p>
+      Например AABBCCDDEE или AA:BB:CC:DD:EE
+      <p>Файл должен иметь расширение .bin</p>
+    </div>
+    <div id="blockerror" class="hidden">
+      <p>ОШИБКА</p>
+      <p>Мак адрес неверен</p>
+      <p>Обновите страницу и попробуйте заново</p>
+    </div>
+    <div id="inputContainer">
+      <input type="text" id="textInput" />
+      <button onclick="handleClick()">Записать</button>
+    </div>
+    <div id="loadingContainer" class="hidden">
+      <label for="file">Выбрать файл</label>
+      <input type="file" id="file" name="file" accept=".bin" />
+    </div>
+    <div id="success" class="hidden">
+      <div>Файл успешно отредактирован и был скачан</div>
+    </div>
+    <script>
+      let enteredstroke;
+      let macAddress;
+      function handleClick() {
+        enteredstroke = document.getElementById("textInput").value;
+        macAddress = enteredstroke.replace(/[:\s]/g, "");
+        if (macAddress.length > 12 || macAddress.length < 12) {
+          document.getElementById("inputContainer").style.display = "none";
+          document.getElementById("blockerror").style.display = "block";
+          return;
+        }
+        document.getElementById("inputContainer").style.display = "none";
+
+        document.getElementById("loadingContainer").style.display = "block";
+      }
+
+      const handleFileSelect = (evt) => {
+        let file = evt.target.files[0];
+        const reader = new FileReader();
+        reader.onload = function (event) {
+          let arrayBuffer = event.target.result;
+          let dataView = new DataView(arrayBuffer);
+
+          let macAddressOffset = 0x21000;
+          let macAddressLength = 6;
+          let macAddressBytes = new Uint8Array(macAddressLength);
+
+          for (let i = 0; i < macAddressLength; i++) {
+            macAddressBytes[i] = parseInt(macAddress.substr(i * 2, 2), 16);
+          }
+
+          let macIncrement = 0;
+          let offsets = [0x28, 0x4, 0x8004];
+          offsets.forEach((offset) => {
+            for (let i = 0; i < macAddressLength - 1; i++) {
+              dataView.setUint8(offset + i, macAddressBytes[i]);
+              console.log(macAddressBytes[i]);
+            }
+            dataView.setUint8(offset + 5, macAddressBytes[5] + macIncrement);
+            macIncrement++;
+          });
+          document.getElementById("block").style.display = "none";
+          document.getElementById("loadingContainer").style.display = "none";
+          document.getElementById("success").style.display = "block";
+          let copyFromOffset = 0x8000;
+          let copyLength = 0x8600 - copyFromOffset;
+          let copyToOffset = 0x400;
+
+          for (let i = 0; i < copyLength; i++) {
+            let value = dataView.getUint8(copyFromOffset + i);
+            dataView.setUint8(copyToOffset + i, value);
+          }
+
+          let blob = new Blob([dataView], { type: "application/octet-stream" });
+          let url = URL.createObjectURL(blob);
+
+          let link = document.createElement("a");
+          link.href = url;
+          link.download = "eeprom.bin";
+          link.click();
+          evt.target.value = null;
+        };
+        reader.readAsArrayBuffer(file);
+      };
+      document.getElementById("file").addEventListener("change", handleFileSelect, false);
+    </script>
+  </body>
+</html>
