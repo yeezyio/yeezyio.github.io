@@ -87,13 +87,13 @@
       }
       @media screen and (max-width: 1114px) {
         #blockpowered {
-            font-size: 1.5rem;   
+          font-size: 1.5rem;
         }
         #choice {
           flex-direction: column;
         }
         h1 {
-            font-size: 1.3rem;
+          font-size: 1.3rem;
         }
         hr {
           width: 80%;
@@ -102,6 +102,9 @@
         button {
           margin: 20px;
           font-size: 1.3rem;
+        }
+        button:hover {
+            font-size: 1.5rem; 
         }
         #content {
           padding: 5px;
@@ -119,20 +122,24 @@
       <div id="content">
         <h1>Что у меня есть?</h1>
         <div id="choice">
-          <button id="info" class="breed" onclick="">
+          <button id="info" class="breed" disabled>
             Полный дамп из <a href="https://breed.hackpascal.net/">Breed</a>
           </button>
           <hr />
-          <button id="info">Вырезанный EEPROM</button>
+          <button id="info" class="eeprom">Вырезанный EEPROM</button>
         </div>
       </div>
     </main>
     <script>
       butbreed = document.querySelector(".breed");
-      function breed() {
+      buteeprom = document.querySelector(".eeprom");
+      function eeprom() {
         window.location.href = "EepromConverter.html";
       }
-      butbreed.addEventListener("click", breed);
+      function breed() {
+        window.location.href = "";
+      }
+      buteeprom.addEventListener("click", eeprom);
     </script>
   </body>
 </html>
