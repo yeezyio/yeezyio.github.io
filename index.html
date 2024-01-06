@@ -81,6 +81,9 @@
         border: none;
         transition: 0.1s linear;
       }
+      #tobe {
+        text-decoration: line-through;
+      }
       button:hover {
         text-shadow: 1px 1px 40px white;
         font-size: 1.8rem;
@@ -104,8 +107,9 @@
           font-size: 1.3rem;
         }
         button:hover {
-            font-size: 1.5rem; 
+          font-size: 1.5rem;
         }
+
         #content {
           padding: 5px;
         }
@@ -123,7 +127,8 @@
         <h1>Что у меня есть?</h1>
         <div id="choice">
           <button id="info" class="breed" disabled>
-            Полный дамп из <a href="https://breed.hackpascal.net/">Breed</a>
+            <span id="tobe">Полный дамп из <a href="https://breed.hackpascal.net/">Breed</a></span>
+            <div>В разработке</div>
           </button>
           <hr />
           <button id="info" class="eeprom">Вырезанный EEPROM</button>
