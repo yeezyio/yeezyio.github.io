@@ -1,0 +1,331 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>EEPROM Converter @yeezyio</title>
+    <link href="https://fonts.cdnfonts.com/css/google-sans" rel="stylesheet" />
+    <style>
+      body {
+        margin: 0;
+        background: #1f1f1f;
+        color: #e3e3e3;
+        font-family: "Product Sans Medium", Arial, Helvetica, sans-serif;
+        vertical-align: middle;
+      }
+      body,
+      html {
+        height: 100%;
+        margin: 0;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        text-align: center;
+      }
+      .flag {
+        height: 30px;
+        width: 50px;
+        margin-left: 10px;
+        margin-right: 10px;
+        background-image: linear-gradient(#fff 33.3%, #00f 33.3% 66.6%, #f00 66.6% 100%);
+      }
+      #blockpowered {
+        display: flex;
+        font-size: 2rem;
+        align-items: center;
+        justify-content: center;
+        vertical-align: middle;
+        margin-bottom: 30px;
+        flex-wrap: wrap;
+      }
+      a {
+        text-decoration: none;
+        color: #c2e7ff;
+        transition: 0.1s linear;
+      }
+      a:hover {
+        color: #004a77;
+      }
+      @font-face {
+        font-family: GoogleSansDisplay;
+        src: url(https://github.com/hprobotic/Google-Sans-Font/raw/master/GoogleSans-Medium.ttf);
+      }
+      h1 {
+        font-weight: normal;
+        margin: 20px;
+      }
+      #content {
+        background: #28292a;
+        padding: 50px;
+        border-radius: 50px;
+      }
+      #info {
+        background: #2d2f31;
+        padding: 20px;
+        font-size: 1.5rem;
+        border-radius: 50px;
+        margin: 40px;
+      }
+      #file {
+        display: none;
+      }
+      label {
+        padding: 15px;
+        background-color: #a8c7fa;
+        border-radius: 50px;
+        color: #062e6f;
+        text-transform: uppercase;
+        transition: 0.1s linear;
+      }
+      label:hover {
+        background-color: #c0d4f7;
+      }
+      #error {
+        background: #601410;
+        padding: 10px;
+        font-size: 1.5rem;
+        border-radius: 50px;
+        margin: 40px;
+        color: #f2b8b5;
+        display: none;
+      }
+      #success {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        vertical-align: middle;
+        background: #015309;
+        padding: 10px;
+        font-size: 1.5rem;
+        border-radius: 50px;
+        margin: 40px;
+        color: #42e345;
+        display: none;
+      }
+      .icons {
+        margin-right: 10px;
+      }
+      input {
+        font-family: "Product Sans Medium", Arial, Helvetica, sans-serif;
+        color: white;
+        background: #36343b;
+        border-radius: 5px;
+        padding: 10px;
+        font-size: 1.3rem;
+        border-bottom: 3px solid #938f99;
+      }
+      #inputContainer {
+        display: flex;
+        gap: 20px;
+        align-items: center;
+        justify-content: center;
+        vertical-align: middle;
+        flex-direction: column;
+        justify-content: center;
+        text-align: center;
+      }
+      button {
+        font-family: "Product Sans Medium", Arial, Helvetica, sans-serif;
+        padding: 15px;
+        background-color: #a8c7fa;
+        border-radius: 50px;
+        color: #062e6f;
+        text-transform: uppercase;
+        transition: 0.1s linear;
+      }
+      button:hover {
+        background-color: #c0d4f7;
+      }
+      details > summary {
+        list-style: none;
+      }
+      summary {
+        color: #c2e7ff;
+        font-size: 1.2rem;
+      }
+      details {
+        font-size: 1.2rem;
+      }
+      summary:hover {
+        transition: 0.1s linear;
+        color: #004a77;
+      }
+      details summary:before {
+        transition: 0.1s linear;
+        content: "+";
+        margin-right: 7px;
+        font-weight: 600;
+      }
+      details[open] summary:before {
+        transition: 0.1s linear;
+        content: "-";
+      }
+      #info2 {
+        background: #2d2f31;
+        padding: 20px;
+        font-size: 1.5rem;
+        border-radius: 50px;
+        margin: 40px;
+      }
+      #loadingContainer {
+        display: none;
+      }
+      #infoup {
+        background: #2d2f31;
+        padding: 20px;
+        font-size: 1.5rem;
+        border-radius: 50px;
+        margin: 40px;
+        display: none;
+      }
+      @media screen and (max-width: 1114px) {
+        #blockpowered {
+          font-size: 1.5rem;
+        }
+        #choice {
+          flex-direction: column;
+        }
+        h1 {
+          font-size: 1.3rem;
+        }
+        hr {
+          width: 80%;
+          height: 1px;
+        }
+        button {
+          margin: 20px;
+          font-size: 1rem;
+        }
+        button:hover {
+          font-size: 1.5rem;
+        }
+        label {
+          margin: 20px;
+          font-size: 1rem;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <main>
+      <div id="blockpowered">
+        <div>Сделано в России</div>
+        <div class="flag"></div>
+        <div><a href="https://t.me/yeezyio">@yeezyio</a></div>
+      </div>
+      <div id="content">
+        <h1>Универсальный патчер EEPROM по смещениям 0x28, 0x4, 0x8004</h1>
+        <div id="info">Запишите MAC-адрес роутера</div>
+        <div id="infoup">Выберите файл EEPROM</div>
+        <div id="inputContainer">
+          <input type="text" id="textInput" placeholder="Ваш MAC-адрес" />
+          <details>
+            <summary>Как вводить MAC-адрес ? (клик)</summary>
+            <p>Вы можете вводить MAC в любом формате</p>
+            <p>Например AABBCCDDEEFF или AA:BB:CC:DD:EE:FF</p>
+          </details>
+          <button onclick="handleClick()">Записать</button>
+        </div>
+        <div id="error">
+          <p
+            style="
+              display: flex;
+              align-items: center;
+              justify-content: center;
+              vertical-align: middle;
+            "
+          >
+            <svg width="35" height="35" viewBox="0 0 24 24" fill="#f2b8b5" class="icons">
+              <path
+                d="M11 15h2v2h-2zm0-8h2v6h-2zm.99-5C6.47 2 2 6.48 2 12s4.47 10 9.99 10C17.52 22 22 17.52 22 12S17.52 2 11.99 2zM12 20c-4.42 0-8-3.58-8-8s3.58-8 8-8 8 3.58 8 8-3.58 8-8 8z"
+              />
+            </svg>
+            <span>Произошла ошибка</span>
+          </p>
+          <p>Неправильная длина MAC-адреса</p>
+          <p>Обновите страницу и попробуйте заново</p>
+        </div>
+        <div id="success">
+          <svg width="35" height="35" viewBox="0 0 24 24" fill="#42e345" class="icons">
+            <path
+              d="M20,12A8,8 0 0,1 12,20A8,8 0 0,1 4,12A8,8 0 0,1 12,4C12.76,4 13.5,4.11 14.2, 4.31L15.77,2.74C14.61,2.26 13.34,2 12,2A10,10 0 0,0 2,12A10,10 0 0,0 12,22A10,10 0 0, 0 22,12M7.91,10.08L6.5,11.5L11,16L21,6L19.59,4.58L11,13.17L7.91,10.08Z"
+            />
+          </svg>
+          <p>Файл был успешно отредактирован и скачан</p>
+        </div>
+        <div id="loadingContainer" class="hidden">
+          <label for="file">Выбрать файл</label>
+          <input type="file" id="file" name="file" accept=".bin" />
+        </div>
+      </div>
+    </main>
+
+    <script>
+      let enteredstroke;
+      let macAddress;
+      function handleClick() {
+        enteredstroke = document.getElementById("textInput").value;
+        macAddress = enteredstroke.replace(/[:\s]/g, "");
+        if (macAddress.length > 12 || macAddress.length < 12) {
+          document.getElementById("inputContainer").style.display = "none";
+          document.getElementById("info").style.display = "none";
+          document.getElementById("error").style.display = "block";
+          return;
+        }
+        document.getElementById("inputContainer").style.display = "none";
+        document.getElementById("info").style.display = "none";
+        document.getElementById("infoup").style.display = "block";
+        document.getElementById("loadingContainer").style.display = "block";
+      }
+      const handleFileSelect = (evt) => {
+        let file = evt.target.files[0];
+        const reader = new FileReader();
+        reader.onload = function (event) {
+          let arrayBuffer = event.target.result;
+          let dataView = new DataView(arrayBuffer);
+
+          let macAddressOffset = 0x21000;
+          let macAddressLength = 6;
+          let macAddressBytes = new Uint8Array(macAddressLength);
+
+          for (let i = 0; i < macAddressLength; i++) {
+            macAddressBytes[i] = parseInt(macAddress.substr(i * 2, 2), 16);
+          }
+
+          let macIncrement = 0;
+          let offsets = [0x28, 0x4, 0x8004];
+          offsets.forEach((offset) => {
+            for (let i = 0; i < macAddressLength - 1; i++) {
+              dataView.setUint8(offset + i, macAddressBytes[i]);
+              console.log(macAddressBytes[i]);
+            }
+            dataView.setUint8(offset + 5, macAddressBytes[5] + macIncrement);
+            macIncrement++;
+          });
+          document.getElementById("infoup").style.display = "none";
+          document.getElementById("loadingContainer").style.display = "none";
+          document.getElementById("success").style.display = "flex";
+          let copyFromOffset = 0x8000;
+          let copyLength = 0x8600 - copyFromOffset;
+          let copyToOffset = 0x400;
+
+          for (let i = 0; i < copyLength; i++) {
+            let value = dataView.getUint8(copyFromOffset + i);
+            dataView.setUint8(copyToOffset + i, value);
+          }
+
+          let blob = new Blob([dataView], { type: "application/octet-stream" });
+          let url = URL.createObjectURL(blob);
+
+          let link = document.createElement("a");
+          link.href = url;
+          link.download = "eeprom.bin";
+          link.click();
+          evt.target.value = null;
+        };
+        reader.readAsArrayBuffer(file);
+      };
+      document.getElementById("file").addEventListener("change", handleFileSelect, false);
+    </script>
+  </body>
+</html>
