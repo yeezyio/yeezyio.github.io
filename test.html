@@ -1,187 +1,227 @@
 <!DOCTYPE html>
 <html>
-
-<head>
+  <head>
     <meta charset="UTF-8" />
     <title>eeprom converter @yeezyio</title>
     <style>
-        body {
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            flex-direction: column;
-            height: 100vh;
-            font-family: Arial, sans-serif;
-            background-color: #2f2f2f;
-        }
+      body {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        flex-direction: column;
+        height: 100vh;
+        font-family: Arial, sans-serif;
+        background-color: #2f2f2f;
+      }
 
-        h1 {
-            color: rgb(190, 29, 29);
-            text-align: center;
-            margin-bottom: 50px;
-            border: 4px solid;
-            padding: 8px;
-            border-radius: 3px;
-        }
+      h1 {
+        color: rgb(190, 29, 29);
+        text-align: center;
+        margin-bottom: 50px;
+        border: 4px solid;
+        padding: 8px;
+        border-radius: 3px;
+      }
 
-        #file {
-            display: none;
-        }
+      #file {
+        display: none;
+      }
 
-        label {
-            padding: 10px;
-            background-color: rgb(0, 164, 246);
-            color: white;
-            cursor: pointer;
-            border-radius: 5px;
-            text-transform: uppercase;
-            font-weight: bold;
-        }
+      label {
+        padding: 10px;
+        background-color: rgb(0, 164, 246);
+        color: white;
+        cursor: pointer;
+        border-radius: 5px;
+        text-transform: uppercase;
+        font-weight: bold;
+      }
 
-        label:hover {
-            background-color: rgb(4, 108, 160);
-        }
+      label:hover {
+        background-color: rgb(4, 108, 160);
+      }
 
-        #block {
-            width: 50%;
-            color: white;
-            font-family: Arial, sans-serif;
-            text-align: center;
-            font-size: 22pt;
-            margin-bottom: 50px;
-        }
+      #block {
+        width: 50%;
+        color: white;
+        font-family: Arial, sans-serif;
+        text-align: center;
+        font-size: 22pt;
+        margin-bottom: 50px;
+      }
 
-        .hidden {
-            display: none;
-        }
+      .hidden {
+        display: none;
+      }
 
-        #inputContainer {
-            display: grid;
-        }
+      #inputContainer {
+        display: grid;
+      }
 
-        input {
-            font-family: Arial, sans-serif;
-            font-size: 20pt;
-            padding: 5px;
-            margin-bottom: 20px;
-        }
+      input {
+        font-family: Arial, sans-serif;
+        font-size: 20pt;
+        padding: 5px;
+        margin-bottom: 20px;
+      }
 
-        button {
-            padding: 10px;
-            font-family: Arial, sans-serif;
-            color: white;
-            font-size: 20pt;
-            background: rgb(0, 164, 246);
-        }
+      button {
+        padding: 10px;
+        font-family: Arial, sans-serif;
+        color: white;
+        font-size: 20pt;
+        background: rgb(0, 164, 246);
+      }
 
-        button:hover {
-            background-color: rgb(4, 108, 160);
-        }
+      button:hover {
+        background-color: rgb(4, 108, 160);
+      }
 
-        #blockerror {
-            font-family: Arial, sans-serif;
-            color: red;
-            border: 3px solid;
-            border-radius: 3px;
-            padding: 10px;
-            font-size: 20pt;
-            text-align: center;
-            margin-bottom: 50px;
-        }
+      #blockerror {
+        font-family: Arial, sans-serif;
+        color: red;
+        border: 3px solid;
+        border-radius: 3px;
+        padding: 10px;
+        font-size: 20pt;
+        text-align: center;
+        margin-bottom: 50px;
+      }
 
-        #author {
-            color: white;
-            font-size: 20pt;
-        }
+      #author {
+        color: white;
+        font-size: 20pt;
+      }
 
-        #success {
-            color: lightgreen;
-            font-size: 20pt;
-        }
+      #success {
+        color: lightgreen;
+        font-size: 20pt;
+      }
+
+      #status {
+        margin-top: 20px;
+        color: white;
+        font-size: 20pt;
+      }
     </style>
-</head>
+  </head>
 
-<body>
+  <body>
     <div id="author">Powered by @yeezyio</div>
     <h1>Все на ваш страх и риск</h1>
 
     <div id="loadingContainer" class="">
-        <label for="file">Выбрать файл</label>
-        <input type="file" id="file" name="file" accept=".bin" />
+      <label for="file">Выбрать файл</label>
+      <input type="file" id="file" name="file" accept=".bin" />
     </div>
     <div id="success" class="hidden">
-        <div>Файл успешно отредактирован и был скачан</div>
+      <div>Файл успешно отредактирован и был скачан</div>
     </div>
+    <div id="status"></div>
     <script>
-        const gens = [0x03, 0x63, 0x15];
-        const models = [0x76, 0x79];
+      class NameUnit {
+        real;
+        fake;
+        constructor(real, fake) {
+          if (arguments.length == 1) {
+            this.real = real;
+            this.fake = real;
+          } else {
+            this.real = real;
+            this.fake = fake;
+          }
+        }
+      }
 
-        function searchBytes(intArray, firstByte, secondByte) {
-            let result = [];
-            intArray.forEach((item, index, array) => {
-                if (array[index] === firstByte && array[index + 1] === secondByte) {
-                    let flag = true;
-                    for (let sIndex = index - 1; sIndex != index - 31; sIndex--) {
-                        if (array[sIndex] != 0xff) {
-                            flag = false;
-                            break;
-                        }
-                    }
-                    if (flag) {
-                        result.push(index);
-                    }
-                }
+      const gens = [new NameUnit(0x03), new NameUnit(0x63, 0x13), new NameUnit(0x15)];
+      const models = [new NameUnit(0x76), new NameUnit(0x79)];
+
+      function searchBytes(intArray, firstByte, secondByte) {
+        let result = [];
+        intArray.forEach((item, index, array) => {
+          if (array[index] === firstByte && array[index + 1] === secondByte) {
+            let flag = true;
+            for (let sIndex = index - 1; sIndex != index - 31; sIndex--) {
+              if (array[sIndex] != 0xff) {
+                flag = false;
+                break;
+              }
+            }
+            if (flag) {
+              result.push(index);
+            }
+          }
+        });
+        return result;
+      }
+      function makeEeprom(offsets, arrayBuffer) {
+        let copyLength = 0x8000;
+
+        let dataView = new DataView(arrayBuffer);
+        let outputArrayBuffer = new ArrayBuffer(262144);
+        let outputDataView = new DataView(outputArrayBuffer);
+        for (let i = 0; i < outputArrayBuffer.byteLength; i++) {
+          outputDataView.setUint8(i, 0xff);
+        }
+
+        for (let j = 0; j < offsets.length; j++) {
+          for (let i = 0; i < copyLength; i++) {
+            let value = dataView.getUint8(i + offsets[j]);
+            outputDataView.setUint8(copyLength * j + i, value);
+          }
+        }
+        return outputDataView;
+      }
+      function download(dataView) {
+        let blob = new Blob([dataView], { type: "application/octet-stream" });
+        let url = URL.createObjectURL(blob);
+
+        let link = document.createElement("a");
+        link.href = url;
+        link.download = "eeprom.bin";
+        link.click();
+      }
+
+      const handleClick = (evt) => {
+        let file = evt.target.files[0];
+        const reader = new FileReader();
+        log = document.getElementById("status");
+        reader.onload = (event) => {
+          let arrayBuffer = reader.result;
+          let intArray = new Uint8Array(arrayBuffer);
+          let offsets = [];
+          gens.forEach((gen) => {
+            models.forEach((model) => {
+              let a = searchBytes(intArray, gen.real, model.real);
+              let logString =
+                "Targets:\t" +
+                gen.fake.toString(16) +
+                ";\t" +
+                model.fake.toString(16) +
+                ". Found " +
+                a.length +
+                " occurences.";
+              if (a.length > 0) {
+                document.write(
+                  "Найден " +
+                    a.length +
+                    " чип: " +
+                    model.fake.toString(16).padStart(2, "0") +
+                    gen.fake.toString(16).padStart(2, "0") +
+                    "<br>"
+                );
+              }
+
+              console.log(logString);
+              log.innerHTML += logString;
+              a.forEach((item) => offsets.push(item));
             });
-            return result;
-        }
-        function makeEeprom(offsets, arrayBuffer) {
-            let copyLength = 0x8000;
-
-            let dataView = new DataView(arrayBuffer);
-            let outputArrayBuffer = new ArrayBuffer(262144);
-            let outputDataView = new DataView(outputArrayBuffer);
-            for (let i = 0; i < outputArrayBuffer.byteLength; i++) {
-                outputDataView.setUint8(i, 0xff);
-            }
-
-            for (let j = 0; j < offsets.length; j++) {
-                for (let i = 0; i < copyLength; i++) {
-                    let value = dataView.getUint8(i + offsets[j]);
-                    outputDataView.setUint8(copyLength * j + i, value);
-                }
-            }
-            return outputDataView;
-        }
-        function download(dataView) {
-            let blob = new Blob([dataView], { type: "application/octet-stream" });
-            let url = URL.createObjectURL(blob);
-
-            let link = document.createElement("a");
-            link.href = url;
-            link.download = "eeprom.bin";
-            link.click();
-        }
-
-        const handleClick = (evt) => {
-            let file = evt.target.files[0];
-            const reader = new FileReader();
-            reader.onload = (event) => {
-                let arrayBuffer = reader.result;
-                let intArray = new Uint8Array(arrayBuffer);
-                let offsets = [];
-                gens.forEach(gen => {
-                    models.forEach(model => {
-                        let a = searchBytes(intArray, gen, model);
-                        console.log('Targets:\t' + gen.toString(16) + ';\t' + model.toString(16) + '. Found ' + a.length + ' occurences.');
-                        a.forEach(item => offsets.push(item));
-                    });
-                });
-                download(makeEeprom(offsets, arrayBuffer));
-            }
-            reader.readAsArrayBuffer(file);
+          });
+          download(makeEeprom(offsets, arrayBuffer));
         };
-        document.getElementById("file").addEventListener("change", handleClick, false);
+        reader.readAsArrayBuffer(file);
+      };
+      document.getElementById("file").addEventListener("change", handleClick, false);
     </script>
-</body>
-
+  </body>
 </html>
