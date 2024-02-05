@@ -1,0 +1,415 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>EEPROMCutter @yeezyio</title>
+    <link rel="shortcut icon" href="favicon.jpg" type="image/x-icon">
+    <link href="https://fonts.cdnfonts.com/css/google-sans" rel="stylesheet" />
+    <style>
+      body {
+        margin: 0;
+        background: #1f1f1f;
+        color: #e3e3e3;
+        font-family: "Product Sans Medium", Arial, Helvetica, sans-serif;
+        vertical-align: middle;
+      }
+      body,
+      html {
+        height: 100%;
+        margin: 0;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        text-align: center;
+        gap: 50px;
+        flex-direction: column;
+      }
+      .flag {
+        height: 30px;
+        width: 50px;
+        margin-left: 10px;
+        margin-right: 10px;
+        background-image: linear-gradient(#fff 33.3%, #00f 33.3% 66.6%, #f00 66.6% 100%);
+      }
+      #blockpowered {
+        display: flex;
+        font-size: 2rem;
+        align-items: center;
+        justify-content: center;
+        vertical-align: middle;
+        margin-bottom: 30px;
+        flex-wrap: wrap;
+      }
+      #blockpoweredWARN {
+        font-size: 2rem;
+        margin-bottom: 25px;
+      }
+      a {
+        text-decoration: none;
+        color: #c2e7ff;
+        transition: 0.1s linear;
+      }
+      a:hover {
+        color: #004a77;
+      }
+      @font-face {
+        font-family: GoogleSansDisplay;
+        src: url(https://github.com/hprobotic/Google-Sans-Font/raw/master/GoogleSans-Medium.ttf);
+      }
+      h1 {
+        font-weight: normal;
+        margin: 20px;
+      }
+      #content {
+        background: #28292a;
+        padding: 50px;
+        border-radius: 50px;
+      }
+      #info {
+        background: #2d2f31;
+        padding: 20px;
+        font-size: 1.5rem;
+        border-radius: 50px;
+        margin: 40px;
+      }
+      #file {
+        display: none;
+      }
+      label {
+        padding: 15px;
+        background-color: #a8c7fa;
+        border-radius: 50px;
+        color: #062e6f;
+        text-transform: uppercase;
+        transition: 0.1s linear;
+      }
+      label:hover {
+        background-color: #c0d4f7;
+      }
+      #error {
+        background: #601410;
+        padding: 10px;
+        font-size: 1.5rem;
+        border-radius: 50px;
+        margin: 40px;
+        color: #f2b8b5;
+        display: none;
+      }
+      #success {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        vertical-align: middle;
+        background: #015309;
+        padding: 10px;
+        font-size: 1.5rem;
+        border-radius: 50px;
+        margin: 40px;
+        color: #42e345;
+        display: none;
+      }
+      .icons {
+        margin-right: 10px;
+      }
+      input {
+        font-family: "Product Sans Medium", Arial, Helvetica, sans-serif;
+        color: white;
+        background: #36343b;
+        border-radius: 5px;
+        padding: 10px;
+        font-size: 1.3rem;
+        border-bottom: 3px solid #938f99;
+      }
+      #inputContainer {
+        display: flex;
+        gap: 20px;
+        align-items: center;
+        justify-content: center;
+        vertical-align: middle;
+        flex-direction: column;
+        justify-content: center;
+        text-align: center;
+      }
+      button {
+        font-family: "Product Sans Medium", Arial, Helvetica, sans-serif;
+        padding: 15px;
+        background-color: #a8c7fa;
+        border-radius: 50px;
+        color: #062e6f;
+        text-transform: uppercase;
+        transition: 0.1s linear;
+      }
+      button:hover {
+        background-color: #c0d4f7;
+      }
+      details > summary {
+        list-style: none;
+      }
+      summary {
+        color: #c2e7ff;
+        font-size: 1.2rem;
+      }
+      details {
+        font-size: 1.2rem;
+      }
+      summary:hover {
+        transition: 0.1s linear;
+        color: #004a77;
+      }
+      details summary:before {
+        transition: 0.1s linear;
+        content: "+";
+        margin-right: 7px;
+        font-weight: 600;
+      }
+      details[open] summary:before {
+        transition: 0.1s linear;
+        content: "-";
+      }
+      #info2 {
+        background: #2d2f31;
+        padding: 20px;
+        font-size: 1.5rem;
+        border-radius: 50px;
+        margin: 40px;
+      }
+      #process {
+        display: none;
+        background: #3f3f3f;
+        padding: 20px;
+        font-size: 1.5rem;
+        border-radius: 50px;
+        margin: 40px;
+      }
+      #output {
+        background: #015309;
+        padding: 10px;
+        font-size: 1.5rem;
+        border-radius: 50px;
+        padding-top: 20px;
+        padding-bottom: 20px;
+        margin: 40px;
+        color: #42e345;
+        display: none;
+      }
+      #outputerror {
+        display: none;
+        background: #601410;
+        padding: 10px;
+        padding-top: 20px;
+        padding-bottom: 20px;
+        font-size: 1.5rem;
+        border-radius: 50px;
+        margin: 40px;
+        color: #f2b8b5;
+      }
+      .warning {
+        color: rgb(206, 41, 41);
+      }
+      @media screen and (max-width: 1114px) {
+        #blockpoweredWARN {
+          font-size: 1.5rem;
+        }
+        #blockpowered {
+          font-size: 1.5rem;
+        }
+        #choice {
+          flex-direction: column;
+        }
+        h1 {
+          font-size: 1.3rem;
+        }
+        hr {
+          width: 80%;
+          height: 1px;
+        }
+        button {
+          margin: 20px;
+          font-size: 1rem;
+        }
+        button:hover {
+          font-size: 1.5rem;
+        }
+        label {
+          margin: 20px;
+          font-size: 1rem;
+        }
+        #info {
+          font-size: 1.3rem;
+        }
+        #infoup {
+          font-size: 1.3rem;
+        }
+        #error {
+          font-size: 1.3rem;
+        }
+        #success {
+          font-size: 1.3rem;
+        }
+        #output {
+          font-size: 1.3rem;
+        }
+        #outputerror {
+          font-size: 1.3rem;
+        }
+        #process {
+          font-size: 1.3rem;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <main>
+      <div id="blockpowered">
+        <div>Сделано в России</div>
+        <div class="flag"></div>
+        <div><a href="https://t.me/yeezyio">@yeezyio</a></div>
+      </div>
+      <div id="blockpoweredWARN">
+        <span class="warning">Все действия на Ваш страх и риск</span>
+        <br />
+        <span class="warning">Бета-версия</span>
+      </div>
+      <div id="content">
+        <h1>Вырезалка EEPROM из полного дампа <a href="https://breed.hackpascal.net/">Breed</a></h1>
+        <div id="info">
+          Выберите полный дамп снятый с помощью <a href="https://breed.hackpascal.net/">Breed</a>
+        </div>
+        <div id="process">Идет поиск</div>
+        <div id="output">Файл успешно сгенерирован<br /></div>
+        <div id="outputerror">
+          В вашем файле не были найдены чипы WIFI<br />Свяжитесь с
+          <a href="https://t.me/yeezyio">@yeezio</a> и отправьте свой дамп
+        </div>
+
+        <div id="loadingContainer" class="hidden">
+          <label for="file">Выбрать файл</label>
+          <input type="file" id="file" name="file" accept=".bin" />
+        </div>
+      </div>
+    </main>
+
+    <script>
+      class NameUnit {
+        real;
+        fake;
+        constructor(real, fake) {
+          if (arguments.length == 1) {
+            this.real = real;
+            this.fake = real;
+          } else {
+            this.real = real;
+            this.fake = fake;
+          }
+        }
+      }
+
+      const gens = [
+        new NameUnit(0x03),
+        new NameUnit(0x63, 0x13),
+        new NameUnit(0x15),
+        new NameUnit(0x62, 0x12),
+      ];
+      const models = [new NameUnit(0x76)];
+
+      function searchBytes(intArray, firstByte, secondByte) {
+        let result = [];
+        intArray.forEach((item, index, array) => {
+          if (array[index] === firstByte && array[index + 1] === secondByte) {
+            let flag = true;
+            for (let sIndex = index - 1; sIndex != index - 31; sIndex--) {
+              if (array[sIndex] != 0xff) {
+                flag = false;
+                break;
+              }
+            }
+            if (flag) {
+              result.push(index);
+            }
+          }
+        });
+        return result;
+      }
+      function makeEeprom(offsets, arrayBuffer) {
+        let copyLength = 0x8000;
+
+        let dataView = new DataView(arrayBuffer);
+        let outputArrayBuffer = new ArrayBuffer(262144);
+        let outputDataView = new DataView(outputArrayBuffer);
+        for (let i = 0; i < outputArrayBuffer.byteLength; i++) {
+          outputDataView.setUint8(i, 0xff);
+        }
+
+        for (let j = 0; j < offsets.length; j++) {
+          for (let i = 0; i < copyLength; i++) {
+            let value = dataView.getUint8(i + offsets[j]);
+            outputDataView.setUint8(copyLength * j + i, value);
+          }
+        }
+        return outputDataView;
+      }
+      function download(dataView) {
+        let blob = new Blob([dataView], { type: "application/octet-stream" });
+        let url = URL.createObjectURL(blob);
+
+        let link = document.createElement("a");
+        link.href = url;
+        link.download = "eeprom.bin";
+        link.click();
+      }
+      const handleClick = (evt) => {
+        document.getElementById("info").style.display = "none";
+        document.getElementById("loadingContainer").style.display = "none";
+        document.getElementById("process").style.display = "block";
+        let file = evt.target.files[0];
+        const reader = new FileReader();
+        log = document.getElementById("status");
+        reader.onload = (event) => {
+          let arrayBuffer = reader.result;
+          let intArray = new Uint8Array(arrayBuffer);
+          let offsets = [];
+
+          gens.forEach((gen) => {
+            models.forEach((model) => {
+              let a = searchBytes(intArray, gen.real, model.real);
+              let logString =
+                "Targets:\t" +
+                gen.fake.toString(16) +
+                ";\t" +
+                model.fake.toString(16) +
+                ". Found " +
+                a.length +
+                " occurences.";
+              if (a.length > 0) {
+                document.getElementById("process").style.display = "block";
+                document.getElementById("output").style.display = "block";
+                document.getElementById("output").innerHTML +=
+                  "Найден " +
+                  a.length +
+                  " чип: " +
+                  model.fake.toString(16).padStart(2, "0") +
+                  gen.fake.toString(16).padStart(2, "0") +
+                  "<br>";
+                document.getElementById("process").style.display = "none";
+              }
+
+              console.log(logString);
+              a.forEach((item) => offsets.push(item));
+            });
+          });
+          if (offsets.length <= 0) {
+            document.getElementById("process").style.display = "none";
+            document.getElementById("outputerror").style.display = "block";
+          } else {
+            download(makeEeprom(offsets, arrayBuffer));
+          }
+        };
+        reader.readAsArrayBuffer(file);
+      };
+
+      document.getElementById("file").addEventListener("change", handleClick, false);
+    </script>
+    <div><a href="https://yeezyio.github.io/">Вернуться на главную страницу</a></div>
+  </body>
+</html>
