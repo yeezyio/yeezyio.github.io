@@ -308,7 +308,7 @@
           }
 
           let macIncrement = 0;
-          let offsets = [0x28, 0x4, 0x8004];
+          let offsets = [0x4, 0x28, 0x8004];
           offsets.forEach((offset) => {
             for (let i = 0; i < macAddressLength - 1; i++) {
               dataView.setUint8(offset + i, macAddressBytes[i]);
