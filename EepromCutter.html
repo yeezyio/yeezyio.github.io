@@ -344,7 +344,13 @@
         for (let j = 0; j < offsets.length; j++) {
           for (let i = 0; i < copyLength; i++) {
             let value = dataView.getUint8(i + offsets[j]);
-            outputDataView.setUint8(copyLength * j + i, value);
+            let index = copyLength * j + i;
+            if (index < outputArrayBuffer.byteLength) {
+              outputDataView.setUint8(index, value);
+            } else {
+              console.log('Index ' + index + ' is out of bounds');
+              break;
+            }
           }
         }
         return outputDataView;
