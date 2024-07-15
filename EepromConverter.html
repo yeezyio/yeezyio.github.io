@@ -274,74 +274,68 @@
         </div>
       </div>
     </main>
+<script>
+  let enteredstroke;
+  let macAddress;
 
-    <script>
-      let enteredstroke;
-      let macAddress;
-      function handleClick() {
-        enteredstroke = document.getElementById("textInput").value;
-        macAddress = enteredstroke.replace(/[:\s]/g, "");
-        if (macAddress.length > 12 || macAddress.length < 12) {
-          document.getElementById("inputContainer").style.display = "none";
-          document.getElementById("info").style.display = "none";
-          document.getElementById("error").style.display = "block";
-          return;
+  function handleClick() {
+    enteredstroke = document.getElementById("textInput").value;
+    macAddress = enteredstroke.replace(/[:\s]/g, "");
+
+    if (macAddress.length !== 12) {
+      document.getElementById("inputContainer").style.display = "none";
+      document.getElementById("info").style.display = "none";
+      document.getElementById("error").style.display = "block";
+      return;
+    }
+
+    document.getElementById("inputContainer").style.display = "none";
+    document.getElementById("info").style.display = "none";
+    document.getElementById("infoup").style.display = "block";
+    document.getElementById("loadingContainer").style.display = "block";
+  }
+
+  const handleFileSelect = async (evt) => {
+    let file = evt.target.files[0];
+    const arrayBuffer = await file.arrayBuffer();
+    let dataView = new DataView(arrayBuffer);
+
+    let macAddressLength = 6;
+    let macAddressBytes = new Uint8Array(macAddressLength);
+
+    for (let i = 0; i < macAddressLength; i++) {
+      macAddressBytes[i] = parseInt(macAddress.substr(i * 2, 2), 16);
+    }
+
+    let offsets = [0x28, 0x4, 0x8004];
+    offsets.forEach((offset, index) => {
+      for (let i = 0; i < macAddressLength; i++) {
+        let value = macAddressBytes[i];
+        if (i === macAddressLength - 1) {
+          value += index; // Increment last byte by index for specific offsets
         }
-        document.getElementById("inputContainer").style.display = "none";
-        document.getElementById("info").style.display = "none";
-        document.getElementById("infoup").style.display = "block";
-        document.getElementById("loadingContainer").style.display = "block";
+        dataView.setUint8(offset + i, value);
       }
-      const handleFileSelect = (evt) => {
-        let file = evt.target.files[0];
-        const reader = new FileReader();
-        reader.onload = function (event) {
-          let arrayBuffer = event.target.result;
-          let dataView = new DataView(arrayBuffer);
+    });
 
-          let macAddressOffset = 0x21000;
-          let macAddressLength = 6;
-          let macAddressBytes = new Uint8Array(macAddressLength);
+    document.getElementById("infoup").style.display = "none";
+    document.getElementById("loadingContainer").style.display = "none";
+    document.getElementById("success").style.display = "flex";
 
-          for (let i = 0; i < macAddressLength; i++) {
-            macAddressBytes[i] = parseInt(macAddress.substr(i * 2, 2), 16);
-          }
+    let blob = new Blob([arrayBuffer], { type: "application/octet-stream" });
+    let url = URL.createObjectURL(blob);
 
-          let macIncrement = 0;
-          let offsets = [0x28, 0x4, 0x8004];
-          offsets.forEach((offset) => {
-            for (let i = 0; i < macAddressLength - 1; i++) {
-              dataView.setUint8(offset + i, macAddressBytes[i]);
-              console.log(macAddressBytes[i]);
-            }
-            dataView.setUint8(offset + 5, macAddressBytes[5] + macIncrement);
-            macIncrement++;
-          });
-          document.getElementById("infoup").style.display = "none";
-          document.getElementById("loadingContainer").style.display = "none";
-          document.getElementById("success").style.display = "flex";
-          let copyFromOffset = 0x8000;
-          let copyLength = 0x8600 - copyFromOffset;
-          let copyToOffset = 0x400;
+    let link = document.createElement("a");
+    link.href = url;
+    link.download = "eeprom.bin";
+    link.click();
+    evt.target.value = null;
+  };
 
-          for (let i = 0; i < copyLength; i++) {
-            let value = dataView.getUint8(copyFromOffset + i);
-            dataView.setUint8(copyToOffset + i, value);
-          }
+  document.getElementById("file").addEventListener("change", handleFileSelect, false);
+</script>
 
-          let blob = new Blob([dataView], { type: "application/octet-stream" });
-          let url = URL.createObjectURL(blob);
 
-          let link = document.createElement("a");
-          link.href = url;
-          link.download = "eeprom.bin";
-          link.click();
-          evt.target.value = null;
-        };
-        reader.readAsArrayBuffer(file);
-      };
-      document.getElementById("file").addEventListener("change", handleFileSelect, false);
-    </script>
       <div><a href="https://yeezyio.github.io/">Вернуться на главную страницу</a></div>
   </body>
 </html>
