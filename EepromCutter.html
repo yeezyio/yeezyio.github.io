@@ -287,37 +287,38 @@
         </div>
       </div>
     </main>
-
-    <script>
-      class NameUnit {
-        real;
-        fake;
-        constructor(real, fake) {
-          if (arguments.length == 1) {
-            this.real = real;
-            this.fake = real;
-          } else {
-            this.real = real;
-            this.fake = fake;
-          }
-        }
+<script>
+  class NameUnit {
+    real;
+    fake;
+    constructor(real, fake) {
+      if (arguments.length == 1) {
+        this.real = real;
+        this.fake = real;
+      } else {
+        this.real = real;
+        this.fake = fake;
       }
+    }
+  }
 
-      const gens = [
-        new NameUnit(0x03),
-        new NameUnit(0x63, 0x13),
-        new NameUnit(0x15),
-        new NameUnit(0x62, 0x12),
-      ];
-      const models = [new NameUnit(0x76)];
+  const gens = [
+    new NameUnit(0x03),
+    new NameUnit(0x63, 0x13),
+    new NameUnit(0x15),
+    new NameUnit(0x62, 0x12),
+  ];
+  const models = [new NameUnit(0x76)];
 
-      function searchBytes(intArray, firstByte, secondByte) {
-        let result = [];
-        intArray.forEach((item, index, array) => {
-          if (array[index] === firstByte && array[index + 1] === secondByte) {
+  async function searchBytes(intArray, firstByte, secondByte) {
+    return new Promise((resolve) => {
+      setTimeout(() => {
+        const result = [];
+        for (let index = 0; index < intArray.length - 1; index++) {
+          if (intArray[index] === firstByte && intArray[index + 1] === secondByte) {
             let flag = true;
-            for (let sIndex = index - 1; sIndex != index - 31; sIndex--) {
-              if (array[sIndex] != 0xff) {
+            for (let sIndex = index - 1; sIndex >= index - 30; sIndex--) {
+              if (intArray[sIndex] !== 0xff) {
                 flag = false;
                 break;
               }
@@ -326,94 +327,83 @@
               result.push(index);
             }
           }
-        });
-        return result;
-      }
-      function makeEeprom(offsets, arrayBuffer) {
-        let copyLength = 0x8000;
-
-        let dataView = new DataView(arrayBuffer);
-        let outputArrayBuffer = new ArrayBuffer(262144);
-        let outputDataView = new DataView(outputArrayBuffer);
-        for (let i = 0; i < outputArrayBuffer.byteLength; i++) {
-          outputDataView.setUint8(i, 0xff);
         }
+        resolve(result);
+      }, 0);
+    });
+  }
 
-        for (let j = 0; j < offsets.length; j++) {
-          for (let i = 0; i < copyLength; i++) {
-            let value = dataView.getUint8(i + offsets[j]);
-            let index = copyLength * j + i;
-            if (index < outputArrayBuffer.byteLength) {
-              outputDataView.setUint8(index, value);
-            } else {
-              console.log('Index ' + index + ' is out of bounds');
-              break;
+  function makeEeprom(offsets, arrayBuffer) {
+    const copyLength = 0x8000;
+    const dataView = new DataView(arrayBuffer);
+    const outputArrayBuffer = new ArrayBuffer(262144);
+    const outputDataView = new DataView(outputArrayBuffer);
+
+    for (let i = 0; i < outputArrayBuffer.byteLength; i++) {
+      outputDataView.setUint8(i, 0xff);
+    }
+
+    for (let j = 0; j < offsets.length; j++) {
+      const offset = offsets[j];
+      for (let i = 0; i < copyLength && (copyLength * j + i) < outputArrayBuffer.byteLength; i++) {
+        outputDataView.setUint8(copyLength * j + i, dataView.getUint8(i + offset));
+      }
+    }
+
+    return outputDataView;
+  }
+
+  function download(dataView) {
+    const blob = new Blob([dataView], { type: "application/octet-stream" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = "eeprom.bin";
+    link.click();
+  }
+
+  const handleClick = async (evt) => {
+    document.getElementById("info").style.display = "none";
+    document.getElementById("loadingContainer").style.display = "none";
+    document.getElementById("process").style.display = "block";
+    const file = evt.target.files[0];
+    const reader = new FileReader();
+    reader.onload = async () => {
+      const arrayBuffer = reader.result;
+      const intArray = new Uint8Array(arrayBuffer);
+      const offsets = [];
+      const searchPromises = gens.flatMap(gen =>
+        models.map(model =>
+          searchBytes(intArray, gen.real, model.real).then(a => {
+            if (a.length > 0) {
+              document.getElementById("process").style.display = "none";
+              document.getElementById("output").style.display = "block";
+              document.getElementById("output").innerHTML +=
+                `Найден ${a.length} чип: ${model.fake.toString(16).padStart(2, "0")}${gen.fake.toString(16).padStart(2, "0")}<br>`;
             }
-          }
-        }
-        return outputDataView;
+            return a;
+          })
+        )
+      );
+
+      const results = await Promise.all(searchPromises);
+      results.flat().forEach(offset => offsets.push(offset));
+
+      if (offsets.length > 0) {
+        download(makeEeprom(offsets, arrayBuffer));
+      } else {
+        document.getElementById("output").style.display = "none";
+        document.getElementById("process").style.display = "none";
+        document.getElementById("outputerror").style.display = "block";
       }
-      function download(dataView) {
-        let blob = new Blob([dataView], { type: "application/octet-stream" });
-        let url = URL.createObjectURL(blob);
+    };
 
-        let link = document.createElement("a");
-        link.href = url;
-        link.download = "eeprom.bin";
-        link.click();
-      }
-      const handleClick = (evt) => {
-        document.getElementById("info").style.display = "none";
-        document.getElementById("loadingContainer").style.display = "none";
-        document.getElementById("process").style.display = "block";
-        let file = evt.target.files[0];
-        const reader = new FileReader();
-        log = document.getElementById("status");
-        reader.onload = (event) => {
-          let arrayBuffer = reader.result;
-          let intArray = new Uint8Array(arrayBuffer);
-          let offsets = [];
+    reader.readAsArrayBuffer(file);
+  };
 
-          gens.forEach((gen) => {
-            models.forEach((model) => {
-              let a = searchBytes(intArray, gen.real, model.real);
-              let logString =
-                "Targets:\t" +
-                gen.fake.toString(16) +
-                ";\t" +
-                model.fake.toString(16) +
-                ". Found " +
-                a.length +
-                " occurences.";
-              if (a.length > 0) {
-                document.getElementById("process").style.display = "block";
-                document.getElementById("output").style.display = "block";
-                document.getElementById("output").innerHTML +=
-                  "Найден " +
-                  a.length +
-                  " чип: " +
-                  model.fake.toString(16).padStart(2, "0") +
-                  gen.fake.toString(16).padStart(2, "0") +
-                  "<br>";
-                document.getElementById("process").style.display = "none";
-              }
+  document.getElementById("file").addEventListener("change", handleClick, false);
+</script>
 
-              console.log(logString);
-              a.forEach((item) => offsets.push(item));
-            });
-          });
-          if (offsets.length <= 0) {
-            document.getElementById("process").style.display = "none";
-            document.getElementById("outputerror").style.display = "block";
-          } else {
-            download(makeEeprom(offsets, arrayBuffer));
-          }
-        };
-        reader.readAsArrayBuffer(file);
-      };
-
-      document.getElementById("file").addEventListener("change", handleClick, false);
-    </script>
     <div><a href="https://yeezyio.github.io/">Вернуться на главную страницу</a></div>
   </body>
 </html>
