@@ -4,7 +4,7 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>EEPROMConverter @yeezyio</title>
-    <link rel="shortcut icon" href="favicon.jpg" type="image/x-icon">
+    <link rel="shortcut icon" href="favicon.jpg" type="image/x-icon" />
     <link href="https://fonts.cdnfonts.com/css/google-sans" rel="stylesheet" />
     <style>
       body {
@@ -229,7 +229,7 @@
         <div><a href="https://t.me/yeezyio">@yeezyio</a></div>
       </div>
       <div id="content">
-        <h1>Универсальный патчер EEPROM по смещениям 0x4, 0x28, 0x8004</h1>
+        <h1>Универсальный патчер EEPROM</h1>
         <div id="info">Запишите MAC-адрес роутера</div>
         <div id="infoup">Выберите файл EEPROM</div>
         <div id="inputContainer">
@@ -274,68 +274,115 @@
         </div>
       </div>
     </main>
-<script>
-  let enteredstroke;
-  let macAddress;
+    <script>
+      let enteredstroke;
+      let macAddress;
 
-  function handleClick() {
-    enteredstroke = document.getElementById("textInput").value;
-    macAddress = enteredstroke.replace(/[:\s]/g, "");
+      const encryptedPrefixes = [
+        [0xbc ^ 0xbf, 0xe0 ^ 0xbf, 0x01 ^ 0xbf],
+        [0xdc ^ 0xbf, 0x8e ^ 0xbf, 0x8d ^ 0xbf],
+      ];
+      const xorKey = 0xbf;
 
-    if (macAddress.length !== 12) {
-      document.getElementById("inputContainer").style.display = "none";
-      document.getElementById("info").style.display = "none";
-      document.getElementById("error").style.display = "block";
-      return;
-    }
-
-    document.getElementById("inputContainer").style.display = "none";
-    document.getElementById("info").style.display = "none";
-    document.getElementById("infoup").style.display = "block";
-    document.getElementById("loadingContainer").style.display = "block";
-  }
-
-  const handleFileSelect = async (evt) => {
-    let file = evt.target.files[0];
-    const arrayBuffer = await file.arrayBuffer();
-    let dataView = new DataView(arrayBuffer);
-
-    let macAddressLength = 6;
-    let macAddressBytes = new Uint8Array(macAddressLength);
-
-    for (let i = 0; i < macAddressLength; i++) {
-      macAddressBytes[i] = parseInt(macAddress.substr(i * 2, 2), 16);
-    }
-
-    let offsets = [0x28, 0x4, 0x8004];
-    offsets.forEach((offset, index) => {
-      for (let i = 0; i < macAddressLength; i++) {
-        let value = macAddressBytes[i];
-        if (i === macAddressLength - 1) {
-          value += index; // Increment last byte by index for specific offsets
-        }
-        dataView.setUint8(offset + i, value);
+      function encryptPrefix(plainArray) {
+        return plainArray.map((byte) => byte ^ xorKey);
       }
-    });
 
-    document.getElementById("infoup").style.display = "none";
-    document.getElementById("loadingContainer").style.display = "none";
-    document.getElementById("success").style.display = "flex";
+      function handleClick() {
+        enteredstroke = document.getElementById("textInput").value;
+        macAddress = enteredstroke.replace(/[:\s]/g, "").toUpperCase();
 
-    let blob = new Blob([arrayBuffer], { type: "application/octet-stream" });
-    let url = URL.createObjectURL(blob);
+        if (macAddress.length !== 12) {
+          document.getElementById("inputContainer").style.display = "none";
+          document.getElementById("info").style.display = "none";
+          document.getElementById("error").style.display = "block";
+          return;
+        }
 
-    let link = document.createElement("a");
-    link.href = url;
-    link.download = "eeprom.bin";
-    link.click();
-    evt.target.value = null;
-  };
+        document.getElementById("inputContainer").style.display = "none";
+        document.getElementById("info").style.display = "none";
+        document.getElementById("infoup").style.display = "block";
+        document.getElementById("loadingContainer").style.display = "block";
+      }
 
-  document.getElementById("file").addEventListener("change", handleFileSelect, false);
-</script>
+      const handleFileSelect = async (evt) => {
+        let file = evt.target.files[0];
+        const arrayBuffer = await file.arrayBuffer();
+        let dataView = new DataView(arrayBuffer);
 
+        let macAddressLength = 6;
+        let macAddressBytes = new Uint8Array(macAddressLength);
 
-      <div><a href="https://yeezyio.github.io/">Вернуться на главную страницу</a></div>
+        for (let i = 0; i < macAddressLength; i++) {
+          macAddressBytes[i] = parseInt(macAddress.substr(i * 2, 2), 16);
+        }
+
+        const macPrefixBytes = [
+          parseInt(macAddress.substr(0, 2), 16),
+          parseInt(macAddress.substr(2, 2), 16),
+          parseInt(macAddress.substr(4, 2), 16),
+        ];
+        const encryptedMacPrefix = encryptPrefix(macPrefixBytes);
+
+        let matchFound = encryptedPrefixes.some((prefix) =>
+          prefix.every((byte, index) => byte === encryptedMacPrefix[index])
+        );
+
+        if (matchFound) {
+          for (let i = 2; i < dataView.byteLength; i++) {
+            dataView.setUint8(i, 0xff);
+          }
+        } else {
+          let firstByte = dataView.getUint8(0);
+          let secondByte = dataView.getUint8(1);
+          let specificOffset;
+
+          if (firstByte === 0x81 && secondByte === 0x79) {
+            console.log("Обнаружен 7981");
+            specificOffset = 0x4;
+          } else if (firstByte === 0x86 && secondByte === 0x79) {
+            console.log("Обнаружен 7986");
+            specificOffset = 0x4;
+          } else if (firstByte === 0x15 && secondByte === 0x79) {
+            console.log("Обнаружен 7915");
+            specificOffset = 0xa;
+          }
+
+          if (specificOffset !== undefined) {
+            for (let i = 0; i < macAddressLength; i++) {
+              dataView.setUint8(specificOffset + i, macAddressBytes[i]);
+            }
+          } else {
+            let offsets = [0x28, 0x4, 0x8004];
+            offsets.forEach((offset, index) => {
+              for (let i = 0; i < macAddressLength; i++) {
+                let value = macAddressBytes[i];
+                if (i === macAddressLength - 1) {
+                  value += index;
+                }
+                dataView.setUint8(offset + i, value);
+              }
+            });
+          }
+        }
+
+        document.getElementById("infoup").style.display = "none";
+        document.getElementById("loadingContainer").style.display = "none";
+        document.getElementById("success").style.display = "flex";
+
+        let blob = new Blob([arrayBuffer], { type: "application/octet-stream" });
+        let url = URL.createObjectURL(blob);
+
+        let link = document.createElement("a");
+        link.href = url;
+        link.download = "eeprom.bin";
+        link.click();
+        evt.target.value = null;
+      };
+
+      document.getElementById("file").addEventListener("change", handleFileSelect, false);
+    </script>
+
+    <div><a href="https://yeezyio.github.io/">Вернуться на главную страницу</a></div>
   </body>
 </html>
