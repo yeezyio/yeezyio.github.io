@@ -328,14 +328,15 @@
           prefix.every((byte, index) => byte === encryptedMacPrefix[index])
         );
 
+        let specificOffset;
         if (matchFound) {
           for (let i = 2; i < dataView.byteLength; i++) {
             dataView.setUint8(i, 0xff);
           }
+          specificOffset = 0xa;
         } else {
           let firstByte = dataView.getUint8(0);
           let secondByte = dataView.getUint8(1);
-          let specificOffset;
 
           if (firstByte === 0x81 && secondByte === 0x79) {
             console.log("Обнаружен 7981");
@@ -346,24 +347,26 @@
           } else if (firstByte === 0x15 && secondByte === 0x79) {
             console.log("Обнаружен 7915");
             specificOffset = 0xa;
-          }
-
-          if (specificOffset !== undefined) {
-            for (let i = 0; i < macAddressLength; i++) {
-              dataView.setUint8(specificOffset + i, macAddressBytes[i]);
-            }
           } else {
-            let offsets = [0x28, 0x4, 0x8004];
-            offsets.forEach((offset, index) => {
-              for (let i = 0; i < macAddressLength; i++) {
-                let value = macAddressBytes[i];
-                if (i === macAddressLength - 1) {
-                  value += index;
-                }
-                dataView.setUint8(offset + i, value);
-              }
-            });
+            specificOffset = null;
           }
+        }
+
+        if (specificOffset !== null) {
+          for (let i = 0; i < macAddressLength; i++) {
+            dataView.setUint8(specificOffset + i, macAddressBytes[i]);
+          }
+        } else {
+          let offsets = [0x28, 0x4, 0x8004];
+          offsets.forEach((offset, index) => {
+            for (let i = 0; i < macAddressLength; i++) {
+              let value = macAddressBytes[i];
+              if (i === macAddressLength - 1) {
+                value += index;
+              }
+              dataView.setUint8(offset + i, value);
+            }
+          });
         }
 
         document.getElementById("infoup").style.display = "none";
