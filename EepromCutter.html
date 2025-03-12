@@ -277,7 +277,7 @@
         <div id="process">Идёт поиск...</div>
         <div id="output">Файл успешно сгенерирован<br /></div>
         <div id="outputerror">
-          В вашем файле не были найдены чипы WIFI<br />Скорее всего, вы затерли свои калибровки, либо ваши чипы WIFI не поддерживаются, что маловерятно
+          В вашем файле не были найдены чипы Wi-Fi<br />Скорее всего, вы затерли свои калибровки, либо ваши чипы не поддерживаются, что маловерятно
         </div>
 
         <div id="loadingContainer" class="hidden">
@@ -309,56 +309,129 @@
   ];
   const models = [new NameUnit(0x76)];
 
-  async function searchBytes(intArray, firstByte, secondByte) {
-    return new Promise((resolve) => {
-      setTimeout(() => {
-        const result = [];
-        for (let index = 0; index < intArray.length - 1; index++) {
-          if (intArray[index] === firstByte && intArray[index + 1] === secondByte) {
-            let flag = true;
-            for (let sIndex = index - 1; sIndex >= index - 30; sIndex--) {
-              if (intArray[sIndex] !== 0xff) {
-                flag = false;
-                break;
-              }
-            }
-            if (flag) {
-              result.push(index);
-            }
-          }
-        }
-        resolve(result);
-      }, 0);
-    });
-  }
+  function searchBytes(intArray, processedRanges) {
+    const result = [];
+    const signatures = new Map();
 
-  function makeEeprom(offsets, arrayBuffer) {
-    const copyLength = 0x8000;
-    const dataView = new DataView(arrayBuffer);
-    const outputArrayBuffer = new ArrayBuffer(262144);
-    const outputDataView = new DataView(outputArrayBuffer);
-
-    for (let i = 0; i < outputArrayBuffer.byteLength; i++) {
-      outputDataView.setUint8(i, 0xff);
+    for (const gen of gens) {
+      for (const model of models) {
+        const signature = (gen.real << 8) | model.real;
+        signatures.set(signature, {gen, model});
+      }
     }
 
-    for (let j = 0; j < offsets.length; j++) {
-      const offset = offsets[j];
-      for (let i = 0; i < copyLength && (copyLength * j + i) < outputArrayBuffer.byteLength; i++) {
-        outputDataView.setUint8(copyLength * j + i, dataView.getUint8(i + offset));
+    for (let index = 0; index < intArray.length - 1; index++) {
+      let isProcessed = false;
+      for (const [start, end] of processedRanges) {
+        if (index >= start && index < end) {
+          isProcessed = true;
+          break;
+        }
+      }
+      if (isProcessed) continue;
+
+      const currentPair = (intArray[index] << 8) | intArray[index + 1];
+      if (signatures.has(currentPair)) {
+        let flag = true;
+        for (let sIndex = index - 1; sIndex >= index - 30; sIndex--) {
+          if (sIndex < 0 || intArray[sIndex] !== 0xff) {
+            flag = false;
+            break;
+          }
+        }
+        if (flag) {
+          result.push({index, gen: signatures.get(currentPair).gen, model: signatures.get(currentPair).model});
+        }
+      }
+    }
+    return result;
+  }
+
+  function findSecondChip(intArray) {
+    const signatures = new Map();
+    for (const gen of gens) {
+      for (const model of models) {
+        const signature = (gen.real << 8) | model.real;
+        signatures.set(signature, {gen, model});
+      }
+    }
+
+    let foundFirst = false;
+    for (let index = 0; index < intArray.length - 1; index++) {
+      const currentPair = (intArray[index] << 8) | intArray[index + 1];
+      if (signatures.has(currentPair)) {
+        let flag = true;
+        for (let sIndex = index - 1; sIndex >= index - 4; sIndex--) {
+          if (sIndex < 0 || intArray[sIndex] !== 0xff) {
+            flag = false;
+            break;
+          }
+        }
+        if (flag) {
+          if (!foundFirst) {
+            foundFirst = true; // Пропускаем первый чип на 0x0
+          } else {
+            return index; // Нашли второй чип с 0xFF перед ним
+          }
+        }
+      }
+    }
+    return -1; // Если второго чипа нет
+  }
+
+  function analyzeEepromBlock(dataView) {
+    const intArray = new Uint8Array(dataView.buffer);
+    const foundChips = new Set();
+    const searchLimit = Math.min(0x10000, intArray.length);
+
+    for (const gen of gens) {
+      for (const model of models) {
+        for (let i = 0; i < searchLimit - 1; i++) {
+          if (intArray[i] === gen.real && intArray[i + 1] === model.real) {
+            const chipId = `${model.fake.toString(16).padStart(2, "0")}${gen.fake.toString(16).padStart(2, "0")}`;
+            foundChips.add(chipId);
+          }
+        }
+      }
+    }
+
+    return Array.from(foundChips);
+  }
+
+  function makeEeprom(offset, arrayBuffer) {
+    const copyLength = 0x80000; // 512 КБ
+    const blockLength = 0x1000; // 4 КБ для второго чипа
+    const targetOffset = 0x8000; // Смещение для второго чипа
+    const dataView = new DataView(arrayBuffer);
+    const outputArrayBuffer = new ArrayBuffer(copyLength);
+    const outputDataView = new DataView(outputArrayBuffer);
+
+    for (let i = 0; i < copyLength && i + offset < arrayBuffer.byteLength; i++) {
+      outputDataView.setUint8(i, dataView.getUint8(i + offset));
+    }
+
+    // Ищем второй чип в блоке с учётом 0xFF
+    const intArray = new Uint8Array(outputArrayBuffer);
+    const secondChipOffset = findSecondChip(intArray);
+
+    if (secondChipOffset !== -1 && secondChipOffset !== targetOffset) {
+      // Если второй чип найден и не на 0x8000, переносим его на 0x8000 с заменой
+      for (let i = 0; i < blockLength && secondChipOffset + i < intArray.length; i++) {
+        outputDataView.setUint8(targetOffset + i, intArray[secondChipOffset + i]);
       }
     }
 
     return outputDataView;
   }
 
-  function download(dataView) {
+  function download(dataView, index) {
     const blob = new Blob([dataView], { type: "application/octet-stream" });
     const url = URL.createObjectURL(blob);
     const link = document.createElement("a");
     link.href = url;
-    link.download = "eeprom.bin";
+    link.download = `eeprom_${index + 1}.bin`;
     link.click();
+    URL.revokeObjectURL(url);
   }
 
   const handleClick = async (evt) => {
@@ -370,30 +443,35 @@
     reader.onload = async () => {
       const arrayBuffer = reader.result;
       const intArray = new Uint8Array(arrayBuffer);
-      const offsets = [];
-      const searchPromises = gens.flatMap(gen =>
-        models.map(model =>
-          searchBytes(intArray, gen.real, model.real).then(a => {
-            if (a.length > 0) {
-              document.getElementById("process").style.display = "none";
-              document.getElementById("output").style.display = "block";
-              document.getElementById("output").innerHTML +=
-                `Найден ${a.length} чип: ${model.fake.toString(16).padStart(2, "0")}${gen.fake.toString(16).padStart(2, "0")}<br>`;
-            }
-            return a;
-          })
-        )
-      );
+      const processedRanges = [];
+      const eeproms = [];
 
-      const results = await Promise.all(searchPromises);
-      results.flat().forEach(offset => offsets.push(offset));
+      while (true) {
+        const found = searchBytes(intArray, processedRanges);
+        if (found.length === 0) break;
 
-      if (offsets.length > 0) {
-        download(makeEeprom(offsets, arrayBuffer));
-      } else {
+        const {index: offset} = found[0];
+        const eepromData = makeEeprom(offset, arrayBuffer);
+        download(eepromData, eeproms.length);
+        const chips = analyzeEepromBlock(eepromData);
+        eeproms.push({fileIndex: eeproms.length, chips});
+        processedRanges.push([offset, offset + 0x80000]);
+      }
+
+      document.getElementById("process").style.display = "none";
+      document.getElementById("output").style.display = "block";
+
+      if (eeproms.length === 0) {
         document.getElementById("output").style.display = "none";
-        document.getElementById("process").style.display = "none";
         document.getElementById("outputerror").style.display = "block";
+      } else if (eeproms.length === 1) {
+        document.getElementById("output").innerHTML += `Найден чип: ${eeproms[0].chips.join("/") || "Чипы не найдены"}`;
+      } else {
+        let outputText = "Найдено несколько EEPROM:<br><br>";
+        eeproms.forEach(eeprom => {
+          outputText += `eeprom_${eeprom.fileIndex + 1}.bin:<br>${eeprom.chips.join("/") || "Чипы не найдены"}<br><br>`;
+        });
+        document.getElementById("output").innerHTML += outputText;
       }
     };
 

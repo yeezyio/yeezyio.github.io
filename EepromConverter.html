@@ -230,7 +230,7 @@
       </div>
       <div id="content">
         <h1>Универсальный патчер EEPROM</h1>
-        <div id="info">Запишите MAC-адрес роутера</div>
+        <div id="info">Введите MAC-адрес роутера</div>
         <div id="infoup">Выберите файл EEPROM</div>
         <div id="inputContainer">
           <input type="text" id="textInput" placeholder="Ваш MAC-адрес" />
@@ -277,7 +277,7 @@
     <script>
       let enteredstroke;
       let macAddress;
-
+      const mt7615 = [0x15, 0x76];
       const encryptedPrefixes = [
         [0xbc ^ 0xbf, 0xe0 ^ 0xbf, 0x01 ^ 0xbf],
         [0xdc ^ 0xbf, 0x8e ^ 0xbf, 0x8d ^ 0xbf],
@@ -325,10 +325,12 @@
         const encryptedMacPrefix = encryptPrefix(macPrefixBytes);
 
         let matchFound = encryptedPrefixes.some((prefix) =>
-          prefix.every((byte, index) => byte === encryptedMacPrefix[index])
+                prefix.every((byte, index) => byte === encryptedMacPrefix[index])
         );
 
         let specificOffset;
+        let is7615 = false;
+
         if (matchFound) {
           for (let i = 2; i < dataView.byteLength; i++) {
             dataView.setUint8(i, 0xff);
@@ -348,6 +350,16 @@
             console.log("Обнаружен 7915");
             specificOffset = 0xa;
           } else {
+            for (let i = 0; i < dataView.byteLength - 1; i++) {
+              if (
+                      dataView.getUint8(i) === mt7615[0] &&
+                      dataView.getUint8(i + 1) === mt7615[1]
+              ) {
+                console.log("Обнаружен 7615");
+                is7615 = true;
+                break;
+              }
+            }
             specificOffset = null;
           }
         }
@@ -357,12 +369,19 @@
             dataView.setUint8(specificOffset + i, macAddressBytes[i]);
           }
         } else {
-          let offsets = [0x28, 0x4, 0x8004];
-          offsets.forEach((offset, index) => {
+          const offsets = [
+            {offset: 0x28, delta: 0},   // WAN без изменений
+            {offset: 0x4, delta: -1},   // WAN - 1
+          ];
+          if (!is7615) {
+            offsets.push({offset: 0x8004, delta: 1}); // WAN + 1
+          }
+
+          offsets.forEach(({offset, delta}) => {
             for (let i = 0; i < macAddressLength; i++) {
               let value = macAddressBytes[i];
               if (i === macAddressLength - 1) {
-                value += index;
+                value = (value + delta) & 0xff;
               }
               dataView.setUint8(offset + i, value);
             }
@@ -385,7 +404,6 @@
 
       document.getElementById("file").addEventListener("change", handleFileSelect, false);
     </script>
-
     <div><a href="https://yeezyio.github.io/">Вернуться на главную страницу</a></div>
   </body>
 </html>
