@@ -386,22 +386,21 @@
             dataView.setUint8(specificOffset + i, macAddressBytes[i]);
           }
         } else {
-          const offsets = [];
+          const offsets = [
+            {offset: 0x28, delta: 0},   // WAN без изменений
+            {offset: 0x4, delta: -1}    // WAN - 1
+          ];
 
           if (is7612 && is7603) {
             console.log("Обнаружен MT7612 + MT7603");
+            offsets.length = 0;
             offsets.push(
                     {offset: 0x4, delta: 0},    // WAN
                     {offset: 0x28, delta: 1},   // WAN + 1
                     {offset: 0x8004, delta: 2}  // WAN + 2
             );
           } else if (!is7615) {
-            offsets.push(
-                    {offset: 0x28, delta: 0},   // WAN без изменений
-                    {offset: 0x4, delta: -1},   // WAN - 1
-                    {offset: 0x8004, delta: 1}  // WAN + 1
-            );
-          } else {
+            offsets.push({offset: 0x8004, delta: 1}); // WAN + 1
           }
 
           offsets.forEach(({offset, delta}) => {
