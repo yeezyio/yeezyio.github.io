@@ -278,6 +278,8 @@
       let enteredstroke;
       let macAddress;
       const mt7615 = [0x15, 0x76];
+      const mt7612 = [0x12, 0x76];
+      const mt7603 = [0x03, 0x76];
       const encryptedPrefixes = [
         [0xbc ^ 0xbf, 0xe0 ^ 0xbf, 0x01 ^ 0xbf],
         [0xdc ^ 0xbf, 0x8e ^ 0xbf, 0x8d ^ 0xbf],
@@ -330,6 +332,8 @@
 
         let specificOffset;
         let is7615 = false;
+        let is7612 = false;
+        let is7603 = false;
 
         if (matchFound) {
           for (let i = 2; i < dataView.byteLength; i++) {
@@ -357,7 +361,20 @@
               ) {
                 console.log("Обнаружен 7615");
                 is7615 = true;
-                break;
+              }
+              if (
+                      dataView.getUint8(i) === mt7612[0] &&
+                      dataView.getUint8(i + 1) === mt7612[1]
+              ) {
+                console.log("Обнаружен 7612");
+                is7612 = true;
+              }
+              if (
+                      dataView.getUint8(i) === mt7603[0] &&
+                      dataView.getUint8(i + 1) === mt7603[1]
+              ) {
+                console.log("Обнаружен 7603");
+                is7603 = true;
               }
             }
             specificOffset = null;
@@ -369,12 +386,22 @@
             dataView.setUint8(specificOffset + i, macAddressBytes[i]);
           }
         } else {
-          const offsets = [
-            {offset: 0x28, delta: 0},   // WAN без изменений
-            {offset: 0x4, delta: -1},   // WAN - 1
-          ];
-          if (!is7615) {
-            offsets.push({offset: 0x8004, delta: 1}); // WAN + 1
+          const offsets = [];
+
+          if (is7612 && is7603) {
+            console.log("Обнаружен MT7612 + MT7603");
+            offsets.push(
+                    {offset: 0x4, delta: 0},    // WAN
+                    {offset: 0x28, delta: 1},   // WAN + 1
+                    {offset: 0x8004, delta: 2}  // WAN + 2
+            );
+          } else if (!is7615) {
+            offsets.push(
+                    {offset: 0x28, delta: 0},   // WAN без изменений
+                    {offset: 0x4, delta: -1},   // WAN - 1
+                    {offset: 0x8004, delta: 1}  // WAN + 1
+            );
+          } else {
           }
 
           offsets.forEach(({offset, delta}) => {
