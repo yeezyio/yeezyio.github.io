@@ -1,0 +1,386 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>EEPROM Mover @yeezyio</title>
+  <link rel="shortcut icon" href="favicon.jpg" type="image/x-icon" />
+  <link rel="stylesheet" href="fonts/google-sans.css" />
+  <style>
+    body,
+    html {
+      height: 100%;
+      margin: 0;
+      background: #1f1f1f;
+      color: #e3e3e3;
+      font-family: "Product Sans Medium", Arial, Helvetica, sans-serif;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      text-align: center;
+      gap: 50px;
+    }
+    .flag {
+      height: 30px;
+      width: 50px;
+      margin-left: 10px;
+      margin-right: 10px;
+      background-image: linear-gradient(#fff 33.3%, #00f 33.3% 66.6%, #f00 66.6% 100%);
+    }
+    #blockpowered {
+      display: flex;
+      font-size: 2rem;
+      align-items: center;
+      justify-content: center;
+      vertical-align: middle;
+      margin-bottom: 30px;
+      flex-wrap: wrap;
+    }
+    a {
+      text-decoration: none;
+      color: #c2e7ff;
+      transition: 0.1s linear;
+    }
+    a:hover {
+      color: #004a77;
+    }
+    h1 {
+      font-weight: normal;
+      margin: 20px;
+    }
+    #content {
+      background: #28292a;
+      padding: 50px;
+      border-radius: 50px;
+      min-width: 320px;
+      max-width: 600px;
+      margin: 0 auto 0 auto;
+    }
+    #info {
+      background: #2d2f31;
+      padding: 20px;
+      font-size: 1.3rem;
+      border-radius: 30px;
+      margin: 30px 0 30px 0;
+    }
+    #inputContainer {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 18px;
+      width: 100%;
+    }
+    #inputRow {
+      display: flex;
+      flex-direction: row;
+      gap: 18px;
+      justify-content: center;
+      align-items: flex-end;
+      margin-bottom: 24px;
+      flex-wrap: wrap;
+    }
+    .inputGroup {
+      display: flex;
+      flex-direction: column;
+      align-items: flex-start;
+      min-width: 120px;
+      flex: 1 1 0;
+    }
+    .inputGroup label {
+      margin-bottom: 5px;
+      font-size: 1rem;
+      color: #a8c7fa;
+      background: none;
+      border-radius: 0;
+      padding: 0;
+      text-transform: none;
+      text-align: left;
+      width: 100%;
+      font-weight: 500;
+    }
+    .inputGroup input[type="text"] {
+      width: 100%;
+      padding: 12px 14px;
+      border-radius: 10px;
+      border: 1.5px solid #a8c7fa;
+      font-size: 1.1rem;
+      background: #232325;
+      color: #fff;
+      box-sizing: border-box;
+      transition: border 0.2s;
+    }
+    .inputGroup input[type="text"]:focus {
+      border: 1.5px solid #42e345;
+      outline: none;
+    }
+    #nextBtn {
+      font-family: "Product Sans Medium", Arial, Helvetica, sans-serif;
+      padding: 18px 0;
+      background-color: #a8c7fa;
+      border-radius: 30px;
+      color: #062e6f;
+      text-transform: uppercase;
+      transition: 0.1s linear;
+      font-size: 1.2rem;
+      margin: 18px 0 0 0;
+      border: none;
+      cursor: pointer;
+      width: 100%;
+      font-weight: 600;
+      letter-spacing: 1px;
+    }
+    #nextBtn:hover {
+      background-color: #c0d4f7;
+      font-size: 1.22rem;
+      text-shadow: none;
+    }
+    #loadingContainer {
+      display: none;
+      flex-direction: column;
+      align-items: center;
+      margin-top: 30px;
+    }
+    #file {
+      display: none;
+    }
+    #fileLabel {
+      padding: 15px;
+      background-color: #a8c7fa;
+      border-radius: 50px;
+      color: #062e6f;
+      text-transform: uppercase;
+      transition: 0.1s linear;
+      cursor: pointer;
+      font-size: 1.1rem;
+      margin-bottom: 10px;
+      display: inline-block;
+    }
+    #fileLabel:hover {
+      background-color: #c0d4f7;
+    }
+    #success {
+      display: none;
+      align-items: center;
+      justify-content: center;
+      vertical-align: middle;
+      background: #015309;
+      padding: 15px;
+      font-size: 1.5rem;
+      border-radius: 50px;
+      margin: 40px;
+      color: #42e345;
+    }
+    #error {
+      background: #601410;
+      padding: 10px;
+      font-size: 1.3rem;
+      border-radius: 50px;
+      margin: 40px;
+      color: #f2b8b5;
+      display: none;
+    }
+    .icons {
+      margin-right: 10px;
+    }
+    @media screen and (max-width: 1114px) {
+      #blockpowered {
+        font-size: 1.5rem;
+      }
+      h1 {
+        font-size: 1.3rem;
+      }
+      button {
+        margin: 20px;
+        font-size: 1rem;
+      }
+      button:hover {
+        font-size: 1.2rem;
+      }
+    }
+    @media screen and (max-width: 900px) {
+      #inputRow {
+        flex-direction: column;
+        gap: 10px;
+      }
+      .inputGroup {
+        min-width: 0;
+        width: 100%;
+      }
+    }
+  </style>
+</head>
+<body>
+  <main>
+    <div id="blockpowered">
+      <div>Сделано в России</div>
+      <div class="flag"></div>
+      <div><a href="https://t.me/yeezyio">@yeezyio</a></div>
+    </div>
+    <div id="content">
+      <h1>EEPROM Mover</h1>
+      <div id="info">Укажите параметры для перемещения калибровки</div>
+      <div id="inputContainer">
+        <div style="width:100%;margin-bottom:18px;">
+          <label for="presetSelect" style="color:#a8c7fa;font-size:1rem;font-weight:500;text-align:left;width:100%;display:block;margin-bottom:5px;">Пресет:</label>
+          <select id="presetSelect" style="width:100%;padding:12px 14px;border-radius:10px;border:1.5px solid #a8c7fa;font-size:1.1rem;background:#232325;color:#fff;box-sizing:border-box;">
+            <option value="">-</option>
+            <option value="smartbox">SmartBox Turbo+</option>
+            <option value="xiaomi">Xiaomi Extender RC04</option>
+          </select>
+        </div>
+        <div id="inputRow">
+          <div class="inputGroup">
+            <label for="srcOffset">Откуда копировать:</label>
+            <input type="text" id="srcOffset" required />
+          </div>
+          <div class="inputGroup">
+            <label for="dstOffset">Куда вставлять:</label>
+            <input type="text" id="dstOffset" required />
+          </div>
+          <div class="inputGroup">
+            <label for="length">Длина:</label>
+            <input type="text" id="length" required />
+          </div>
+        </div>
+        <button id="nextBtn">Далее</button>
+      </div>
+      <div id="loadingContainer">
+        <label for="file" id="fileLabel">Выбрать файл</label>
+        <input type="file" id="file" accept="*" />
+      </div>
+      <div id="error">
+        <p style="display: flex; align-items: center; justify-content: center; vertical-align: middle;">
+          <svg width="35" height="35" viewBox="0 0 24 24" fill="#f2b8b5" class="icons">
+            <path d="M11 15h2v2h-2zm0-8h2v6h-2zm.99-5C6.47 2 2 6.48 2 12s4.47 10 9.99 10C17.52 22 22 17.52 22 12S17.52 2 11.99 2zM12 20c-4.42 0-8-3.58-8-8s3.58-8 8-8 8 3.58 8 8-3.58 8-8 8z"/>
+          </svg>
+          <span id="errorText">Произошла ошибка</span>
+        </p>
+        <p id="errorDesc"></p>
+      </div>
+      <div id="success">
+        <svg width="35" height="35" viewBox="0 0 24 24" fill="#42e345" class="icons">
+          <path d="M20,12A8,8 0 0,1 12,20A8,8 0 0,1 4,12A8,8 0 0,1 12,4C12.76,4 13.5,4.11 14.2, 4.31L15.77,2.74C14.61,2.26 13.34,2 12,2A10,10 0 0,0 2,12A10,10 0 0,0 12,22A10,10 0 0, 0 22,12M7.91,10.08L6.5,11.5L11,16L21,6L19.59,4.58L11,13.17L7.91,10.08Z"/>
+        </svg>
+        <span>Файл был успешно отредактирован и скачан</span>
+      </div>
+    </div>
+  </div>
+  <script>
+    const srcOffsetInput = document.getElementById('srcOffset');
+    const dstOffsetInput = document.getElementById('dstOffset');
+    const lengthInput = document.getElementById('length');
+    const nextBtn = document.getElementById('nextBtn');
+    const inputContainer = document.getElementById('inputContainer');
+    const loadingContainer = document.getElementById('loadingContainer');
+    const fileInput = document.getElementById('file');
+    const errorDiv = document.getElementById('error');
+    const errorText = document.getElementById('errorText');
+    const errorDesc = document.getElementById('errorDesc');
+    const successDiv = document.getElementById('success');
+    const presetSelect = document.getElementById('presetSelect');
+    const presets = {
+      smartbox: { src: '0x8000', dst: '0x0', len: '3000' },
+      xiaomi:   { src: '0x8000', dst: '0x400', len: '600' }
+    };
+
+    function hideAll() {
+      errorDiv.style.display = 'none';
+      successDiv.style.display = 'none';
+    }
+
+    function parseNum(val) {
+      val = val.trim();
+      const parsed = parseInt(val.replace(/^0x/i, ''), 16);
+      console.log(`Ввод '${val}' всегда трактуется как HEX:`, parsed);
+      return parsed;
+    }
+
+    nextBtn.addEventListener('click', function() {
+      hideAll();
+      const srcOffset = parseNum(srcOffsetInput.value);
+      const dstOffset = parseNum(dstOffsetInput.value);
+      const length = parseNum(lengthInput.value);
+      if (isNaN(srcOffset) || isNaN(dstOffset) || isNaN(length) || srcOffset < 0 || dstOffset < 0 || length < 1) {
+        showError('Проверьте введённые значения!', 'Некорректные параметры');
+        return;
+      }
+      inputContainer.style.display = 'none';
+      document.getElementById('info').style.display = 'none';
+      loadingContainer.style.display = 'flex';
+    });
+
+    fileInput.addEventListener('change', function(evt) {
+      hideAll();
+      const file = fileInput.files[0];
+      if (!file) {
+        showError('Выберите файл!', 'Файл не выбран');
+        return;
+      }
+      const srcOffset = parseNum(srcOffsetInput.value);
+      const dstOffset = parseNum(dstOffsetInput.value);
+      const length = parseNum(lengthInput.value);
+      if (isNaN(srcOffset) || isNaN(dstOffset) || isNaN(length) || srcOffset < 0 || dstOffset < 0 || length < 1) {
+        showError('Проверьте введённые значения!', 'Некорректные параметры');
+        return;
+      }
+      const reader = new FileReader();
+      reader.onload = function(ev) {
+        const arrayBuffer = ev.target.result;
+        const dataView = new DataView(arrayBuffer);
+        const fileLength = dataView.byteLength;
+        if (srcOffset + length > fileLength || dstOffset + length > fileLength) {
+          showError('Смещения и длина выходят за пределы файла!', 'Проверьте размер файла и параметры');
+          return;
+        }
+        console.log(`Копируем с ${srcOffset} (0x${srcOffset.toString(16)}) на ${dstOffset} (0x${dstOffset.toString(16)}), длина ${length} (0x${length.toString(16)})`);
+        let srcBytes = [];
+        for (let i = 0; i < Math.min(16, length); i++) {
+          srcBytes.push(dataView.getUint8(srcOffset + i).toString(16).padStart(2, '0'));
+        }
+        console.log('Первые 16 байт копируемого:', srcBytes.join(' '));
+        for (let i = 0; i < length; i++) {
+          dataView.setUint8(dstOffset + i, dataView.getUint8(srcOffset + i));
+        }
+        let dstBytes = [];
+        for (let i = 0; i < Math.min(16, length); i++) {
+          dstBytes.push(dataView.getUint8(dstOffset + i).toString(16).padStart(2, '0'));
+        }
+        console.log('Первые 16 байт по месту вставки после патча:', dstBytes.join(' '));
+        const blob = new Blob([arrayBuffer], {type: 'application/octet-stream'});
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `patched_${file.name}`;
+        document.body.appendChild(a);
+        a.click();
+        setTimeout(() => {
+          document.body.removeChild(a);
+          URL.revokeObjectURL(url);
+        }, 100);
+        successDiv.style.display = 'flex';
+      };
+      reader.onerror = function() {
+        showError('Ошибка чтения файла!', 'Попробуйте другой файл');
+      };
+      reader.readAsArrayBuffer(file);
+    });
+
+    presetSelect.addEventListener('change', function() {
+      if (presetSelect.value && presets[presetSelect.value]) {
+        srcOffsetInput.value = presets[presetSelect.value].src;
+        dstOffsetInput.value = presets[presetSelect.value].dst;
+        lengthInput.value    = presets[presetSelect.value].len;
+      }
+    });
+
+    function showError(msg, desc) {
+      errorText.textContent = msg;
+      errorDesc.textContent = desc;
+      errorDiv.style.display = 'block';
+    }
+</script>
+
+    <div style="margin-top: 60px; margin-bottom: 30px; text-align: center;"><a href="https://yeezyio.github.io/">Вернуться на главную страницу</a></div>
+  </body>
+</html>
