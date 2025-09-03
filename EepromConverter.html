@@ -335,6 +335,7 @@
         let is7615 = false;
         let is7612 = false;
         let is7603 = false;
+        let is7915 = false;
 
         if (matchFound) {
           for (let i = 2; i < dataView.byteLength; i++) {
@@ -353,7 +354,8 @@
             specificOffset = 0x4;
           } else if (firstByte === 0x15 && secondByte === 0x79) {
             console.log("Обнаружен 7915");
-            specificOffset = 0xa;
+            specificOffset = null;
+            is7915 = true;
           } else {
             for (let i = 0; i < dataView.byteLength - 1; i++) {
               if (
@@ -392,7 +394,13 @@
             {offset: 0x4, delta: -1}    // WAN - 1
           ];
 
-          if (is7612 && is7603) {
+          if (is7915) {
+            offsets.length = 0;
+            offsets.push(
+                    {offset: 0xa, delta: 0},    // WAN без изменений
+                    {offset: 0x4, delta: -1}    // WAN - 1
+            );
+          } else if (is7612 && is7603) {
             console.log("Обнаружен MT7612 + MT7603");
             offsets.length = 0;
             offsets.push(
