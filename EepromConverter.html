@@ -427,7 +427,9 @@
         document.getElementById("loadingContainer").style.display = "none";
         document.getElementById("success").style.display = "flex";
 
-        let blob = new Blob([arrayBuffer], { type: "application/octet-stream" });
+        const MAX_SIZE = 0x80000;
+        const outputBuffer = arrayBuffer.byteLength > MAX_SIZE ? arrayBuffer.slice(0, MAX_SIZE) : arrayBuffer;
+        let blob = new Blob([outputBuffer], { type: "application/octet-stream" });
         let url = URL.createObjectURL(blob);
 
         let link = document.createElement("a");
