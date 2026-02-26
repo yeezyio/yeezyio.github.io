@@ -312,34 +312,53 @@
     return version <= 0x10;
   }
 
+  function calcShannonEntropy(bytes) {
+    if (!bytes.length) return 0;
+    const freq = new Uint32Array(256);
+    for (let i = 0; i < bytes.length; i++) freq[bytes[i]]++;
+
+    let entropy = 0;
+    for (let i = 0; i < 256; i++) {
+      if (!freq[i]) continue;
+      const p = freq[i] / bytes.length;
+      entropy -= p * Math.log2(p);
+    }
+    return entropy;
+  }
+
   function hasCalibrationData(data, chipOffset, chipInfo) {
     const start = chipOffset + chipInfo.calStart;
     const end = Math.min(chipOffset + chipInfo.calEnd, data.length);
     let nonEmpty = 0;
+    let ffOrZero = 0;
     const unique = new Set();
     for (let i = start; i < end; i++) {
-      if (data[i] !== 0xFF && data[i] !== 0x00) nonEmpty++;
+      if (data[i] !== 0xFF && data[i] !== 0x00) {
+        nonEmpty++;
+      } else {
+        ffOrZero++;
+      }
       unique.add(data[i]);
     }
-    return nonEmpty >= 15 && unique.size >= 6;
+
+    const span = end - start;
+    if (span < 64) return false;
+
+    const calSlice = data.subarray(start, end);
+    const entropy = calcShannonEntropy(calSlice);
+    const ffOrZeroRatio = ffOrZero / span;
+
+    if (nonEmpty < 15 || unique.size < 6) return false;
+    if (ffOrZeroRatio < 0.03) return false;
+    if (entropy > 7.4) return false;
+
+    return true;
   }
 
   function validateChip(data, offset, chipInfo) {
-    if (!isValidVersion(data, offset)) {
-      console.log(`  ✗ Невалидная версия (0x${data[offset + 2].toString(16)}): ${chipInfo.name} @ 0x${offset.toString(16)}`);
-      return false;
-    }
-    if (!isValidMac(data, offset, chipInfo)) {
-      const mOff = chipInfo.macOffset;
-      const mac = Array.from(data.subarray(offset + mOff, Math.min(offset + mOff + 6, data.length)))
-              .map(b => b.toString(16).padStart(2, '0')).join(':');
-      console.log(`  ✗ Невалидный MAC (${mac}): ${chipInfo.name} @ 0x${offset.toString(16)}`);
-      return false;
-    }
-    if (!hasCalibrationData(data, offset, chipInfo)) {
-      console.log(`  ✗ Нет калибровки: ${chipInfo.name} @ 0x${offset.toString(16)}`);
-      return false;
-    }
+    if (!isValidVersion(data, offset)) return false;
+    if (!isValidMac(data, offset, chipInfo)) return false;
+    if (!hasCalibrationData(data, offset, chipInfo)) return false;
     const mOff = chipInfo.macOffset;
     const mac = Array.from(data.subarray(offset + mOff, offset + mOff + 6))
             .map(b => b.toString(16).padStart(2, '0')).join(':');
@@ -353,8 +372,6 @@
       const sig = (data[offset] << 8) | data[offset + 1];
       const chipInfo = CHIP_SIGNATURES.get(sig);
       if (!chipInfo) continue;
-
-      console.log(`Кандидат: ${chipInfo.name} @ 0x${offset.toString(16)}`);
       if (validateChip(data, offset, chipInfo)) {
         chips.push({ offset, chipInfo });
       }
@@ -412,11 +429,27 @@
   }
 
   function deduplicate(eeproms) {
+    function meaningfulLength(bytes) {
+      let i = bytes.length - 1;
+      while (i >= 0 && (bytes[i] === 0x00 || bytes[i] === 0xFF)) i--;
+      return i + 1;
+    }
+
+    function isSameEeprom(a, b) {
+      const aLen = meaningfulLength(a);
+      const bLen = meaningfulLength(b);
+      if (aLen !== bLen) return false;
+      for (let i = 0; i < aLen; i++) {
+        if (a[i] !== b[i]) return false;
+      }
+      return true;
+    }
+
     return eeproms.filter((ep, i) => {
       const a = new Uint8Array(ep.data.buffer);
       for (let j = 0; j < i; j++) {
         const b = new Uint8Array(eeproms[j].data.buffer);
-        if (a.length === b.length && a.every((v, k) => v === b[k])) return false;
+        if (isSameEeprom(a, b)) return false;
       }
       return true;
     });
