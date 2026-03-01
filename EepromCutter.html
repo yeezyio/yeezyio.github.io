@@ -295,7 +295,9 @@
   ]);
 
   const ALIGN_4K = 0x1000;
+  const ALIGN_SECONDARY = 0x100;
   const SECOND_RADIO_OFFSET = 0x8000;
+  const SECOND_CHIP_BLOCK_LENGTH = 0x1000;
 
   function isValidMac(data, chipOffset, chipInfo) {
     const mOff = chipInfo.macOffset;
@@ -304,12 +306,6 @@
     if (mac.every(b => b === 0xFF) || mac.every(b => b === 0x00)) return false;
     if (mac[0] & 0x01) return false;
     return true;
-  }
-
-  function isValidVersion(data, chipOffset) {
-    if (chipOffset + 3 > data.length) return false;
-    const version = data[chipOffset + 2];
-    return version <= 0x10;
   }
 
   function calcShannonEntropy(bytes) {
@@ -355,8 +351,23 @@
     return true;
   }
 
-  function validateChip(data, offset, chipInfo) {
-    if (!isValidVersion(data, offset)) return false;
+  function hasCleanPrefix(data, chipOffset, prefixLen = 32, minRatio = 0.9) {
+    if (chipOffset === 0) return true;
+    const start = Math.max(0, chipOffset - prefixLen);
+    const span = chipOffset - start;
+    if (span <= 0) return false;
+
+    let clean = 0;
+    for (let i = start; i < chipOffset; i++) {
+      if (data[i] === 0xFF || data[i] === 0x00) clean++;
+    }
+
+    return (clean / span) >= minRatio;
+  }
+
+  function validateChip(data, offset, chipInfo, options = {}) {
+    const { requireCleanPrefix = true } = options;
+    if (requireCleanPrefix && !hasCleanPrefix(data, offset)) return false;
     if (!isValidMac(data, offset, chipInfo)) return false;
     if (!hasCalibrationData(data, offset, chipInfo)) return false;
     const mOff = chipInfo.macOffset;
@@ -366,18 +377,42 @@
     return true;
   }
 
-  function findValidChips(data) {
+  function findPrimaryChips(data) {
     const chips = [];
     for (let offset = 0; offset < data.length - 1; offset += ALIGN_4K) {
       const sig = (data[offset] << 8) | data[offset + 1];
       const chipInfo = CHIP_SIGNATURES.get(sig);
       if (!chipInfo) continue;
-      if (validateChip(data, offset, chipInfo)) {
+      if (validateChip(data, offset, chipInfo, { requireCleanPrefix: true })) {
         chips.push({ offset, chipInfo });
       }
     }
-    console.log(`Всего валидных чипов: ${chips.length}`);
+    console.log(`Всего валидных первичных чипов: ${chips.length}`);
     return chips;
+  }
+
+  function addSecondaryChips(data, partitions) {
+    for (const partition of partitions) {
+      const end = Math.min(partition.start + partition.size, data.length);
+      const existingOffsets = new Set(partition.chips.map(c => c.offset));
+
+      for (let offset = partition.start + ALIGN_SECONDARY; offset < end - 1; offset += ALIGN_SECONDARY) {
+        if (existingOffsets.has(offset)) continue;
+
+        const sig = (data[offset] << 8) | data[offset + 1];
+        const chipInfo = CHIP_SIGNATURES.get(sig);
+        if (!chipInfo) continue;
+
+        if (validateChip(data, offset, chipInfo, { requireCleanPrefix: false })) {
+          partition.chips.push({ offset, chipInfo });
+          existingOffsets.add(offset);
+        }
+      }
+
+      partition.chips.sort((a, b) => a.offset - b.offset);
+    }
+
+    return partitions;
   }
 
   function groupIntoPartitions(chips, dumpSize) {
@@ -413,11 +448,12 @@
 
     if (chips.length >= 2) {
       const secondOff = chips[1].offset - start;
-      if (secondOff !== SECOND_RADIO_OFFSET && secondOff > SECOND_RADIO_OFFSET) {
-        console.log(`  Перенос 5GHz: 0x${secondOff.toString(16)} → 0x${SECOND_RADIO_OFFSET.toString(16)}`);
-        const halfPart = size >> 1;
-        const copyLen = Math.min(halfPart, size - secondOff);
-        out.set(out.subarray(secondOff, secondOff + copyLen), SECOND_RADIO_OFFSET);
+       if (secondOff !== SECOND_RADIO_OFFSET) {
+         console.log(`  Перенос калибровки: 0x${secondOff.toString(16)} → 0x${SECOND_RADIO_OFFSET.toString(16)}`);
+         const copyLen = Math.min(SECOND_CHIP_BLOCK_LENGTH, size - secondOff, size - SECOND_RADIO_OFFSET);
+         if (copyLen > 0) {
+           out.set(out.subarray(secondOff, secondOff + copyLen), SECOND_RADIO_OFFSET);
+         }
       }
     }
 
@@ -481,8 +517,10 @@
     console.log('=== EEPROM Cutter v2 ===');
     console.log(`Файл: ${file.name}, размер: ${data.length} байт (0x${data.length.toString(16)})`);
 
-    const chips = findValidChips(data);
-    const partitions = groupIntoPartitions(chips, data.length);
+    const primaryChips = findPrimaryChips(data);
+    const partitions = addSecondaryChips(data, groupIntoPartitions(primaryChips, data.length));
+    const chips = partitions.flatMap(p => p.chips);
+    console.log(`Всего валидных чипов (с дочерним поиском): ${chips.length}`);
     const eeproms = partitions.map(p => extractPartition(arrayBuffer, p));
     const unique = deduplicate(eeproms);
     console.log(`Уникальных EEPROM: ${unique.length} из ${eeproms.length}`);
