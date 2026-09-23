@@ -225,7 +225,6 @@
           <label for="presetSelect" style="color:#a8c7fa;font-size:1rem;font-weight:500;text-align:left;width:100%;display:block;margin-bottom:5px;">Пресет:</label>
           <select id="presetSelect" style="width:100%;padding:12px 14px;border-radius:10px;border:1.5px solid #a8c7fa;font-size:1.1rem;background:#232325;color:#fff;box-sizing:border-box;">
             <option value="">-</option>
-            <option value="smartbox">SmartBox Turbo+</option>
             <option value="xiaomi">Xiaomi Extender RC04</option>
           </select>
         </div>
@@ -280,7 +279,6 @@
     const successDiv = document.getElementById('success');
     const presetSelect = document.getElementById('presetSelect');
     const presets = {
-      smartbox: { src: '0x8000', dst: '0x0', len: '3000' },
       xiaomi:   { src: '0x8000', dst: '0x400', len: '600' }
     };
 
